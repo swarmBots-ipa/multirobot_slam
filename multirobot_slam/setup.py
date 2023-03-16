@@ -1,8 +1,8 @@
 from setuptools import setup
+import os 
 from glob import glob
-import os
 
-package_name = 'multirobot_path_planning'
+package_name = 'multirobot_slam'
 
 setup(
     name=package_name,
