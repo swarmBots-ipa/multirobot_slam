@@ -24,6 +24,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'multirobot_slam = multirobot_slam.main:main',
         ],
     },
 )
