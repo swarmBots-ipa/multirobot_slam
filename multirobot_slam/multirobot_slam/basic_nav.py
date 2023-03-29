@@ -46,7 +46,7 @@ class TaskResult(Enum):
 
 class BasicNavigator(Node):
 
-    def __init__(self, node_name='basic_navigator'):
+    def __init__(self, node_name='basic_navigator', namespace=''):
         super().__init__(node_name=node_name)
         self.initial_pose = PoseStamped()
         self.initial_pose.header.frame_id = 'map'
@@ -54,6 +54,7 @@ class BasicNavigator(Node):
         self.result_future = None
         self.feedback = None
         self.status = None
+        self.robot_namespace = namespace
 
         amcl_pose_qos = QoSProfile(
           durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
@@ -64,32 +65,43 @@ class BasicNavigator(Node):
         self.initial_pose_received = False
         self.nav_through_poses_client = ActionClient(self,
                                                      NavigateThroughPoses,
-                                                     'navigate_through_poses')
-        self.nav_to_pose_client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
-        self.follow_waypoints_client = ActionClient(self, FollowWaypoints, 'follow_waypoints')
-        self.follow_path_client = ActionClient(self, FollowPath, 'follow_path')
-        self.compute_path_to_pose_client = ActionClient(self, ComputePathToPose,
-                                                        'compute_path_to_pose')
-        self.compute_path_through_poses_client = ActionClient(self, ComputePathThroughPoses,
-                                                              'compute_path_through_poses')
+                                                     f'/{self.robot_namespace}/navigate_through_poses')
+        self.nav_to_pose_client = ActionClient(self, 
+                                               NavigateToPose, 
+                                               f'/{self.robot_namespace}/navigate_to_pose')
+        self.follow_waypoints_client = ActionClient(self, 
+                                                    FollowWaypoints, 
+                                                    f'/{self.robot_namespace}/follow_waypoints')
+        self.follow_path_client = ActionClient(self, 
+                                               FollowPath, 
+                                               f'/{self.robot_namespace}/follow_path')
+        self.compute_path_to_pose_client = ActionClient(self, 
+                                                        ComputePathToPose,
+                                                        f'/{self.robot_namespace}/compute_path_to_pose')
+        self.compute_path_through_poses_client = ActionClient(self, 
+                                                              ComputePathThroughPoses,
+                                                              f'/{self.robot_namespace}/compute_path_through_poses')
         self.smoother_client = ActionClient(self, SmoothPath, 'smooth_path')
+
         self.spin_client = ActionClient(self, Spin, 'spin')
         self.backup_client = ActionClient(self, BackUp, 'backup')
-        self.assisted_teleop_client = ActionClient(self, AssistedTeleop, 'assisted_teleop')
         self.localization_pose_sub = self.create_subscription(PoseWithCovarianceStamped,
-                                                              'amcl_pose',
+                                                              f'/{self.robot_namespace}/amcl_pose',
                                                               self._amclPoseCallback,
                                                               amcl_pose_qos)
         self.initial_pose_pub = self.create_publisher(PoseWithCovarianceStamped,
-                                                      'initialpose',
+                                                      f'/{self.robot_namespace}/initialpose',
                                                       10)
-        self.change_maps_srv = self.create_client(LoadMap, '/map_server/load_map')
-        self.clear_costmap_global_srv = self.create_client(
-            ClearEntireCostmap, '/global_costmap/clear_entirely_global_costmap')
-        self.clear_costmap_local_srv = self.create_client(
-            ClearEntireCostmap, '/local_costmap/clear_entirely_local_costmap')
-        self.get_costmap_global_srv = self.create_client(GetCostmap, '/global_costmap/get_costmap')
-        self.get_costmap_local_srv = self.create_client(GetCostmap, '/local_costmap/get_costmap')
+        self.change_maps_srv = self.create_client(LoadMap, 
+                                                  '/map_server/load_map')
+        self.clear_costmap_global_srv = self.create_client(ClearEntireCostmap, 
+                                                           f'/{self.robot_namespace}/global_costmap/clear_entirely_global_costmap')
+        self.clear_costmap_local_srv = self.create_client(ClearEntireCostmap, 
+                                                          f'/{self.robot_namespace}/local_costmap/clear_entirely_local_costmap')
+        self.get_costmap_global_srv = self.create_client(GetCostmap, 
+                                                         f'/{self.robot_namespace}/global_costmap/get_costmap')
+        self.get_costmap_local_srv = self.create_client(GetCostmap, 
+                                                        f'/{self.robot_namespace}/local_costmap/get_costmap')
 
     def destroyNode(self):
         self.destroy_node()
@@ -308,16 +320,18 @@ class BasicNavigator(Node):
         else:
             return TaskResult.UNKNOWN
 
-    def waitUntilNav2Active(self, navigator='bt_navigator', localizer='amcl'):
+    def waitUntilNav2Active(self, navigator='', localizer=''):
         """Block until the full navigation system is up and running."""
+        navigator = f'/{self.robot_namespace}/bt_navigator'
+        localizer = f'/{self.robot_namespace}/amcl'
         self._waitForNodeToActivate(localizer)
-        if localizer == 'amcl':
+        if localizer == f'/{self.robot_namespace}/amcl':
             self._waitForInitialPose()
         self._waitForNodeToActivate(navigator)
         self.info('Nav2 is ready for use!')
         return
 
-    def _getPathImpl(self, start, goal, planner_id='', use_start=False):
+    def _getPathImpl(self, start, goal, planner_id='GridBased', use_start=False):
         """
         Send a `ComputePathToPose` action request.
 
@@ -348,7 +362,7 @@ class BasicNavigator(Node):
 
         return self.result_future.result().result
 
-    def getPath(self, start, goal, planner_id='', use_start=False):
+    def getPath(self, start, goal, planner_id='GridBased', use_start=False):
         """Send a `ComputePathToPose` action request."""
         rtn = self._getPathImpl(start, goal, planner_id='', use_start=False)
 
@@ -361,7 +375,7 @@ class BasicNavigator(Node):
         else:
             return rtn.path
 
-    def _getPathThroughPosesImpl(self, start, goals, planner_id='', use_start=False):
+    def _getPathThroughPosesImpl(self, start, goals, planner_id='GridBased', use_start=False):
         """
         Send a `ComputePathThroughPoses` action request.
 
