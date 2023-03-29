@@ -302,8 +302,10 @@ class RobotNavigator(Node):
         else:
             return TaskResult.UNKNOWN
 
-    def waitUntilNav2Active(self, navigator, localizer):
+    def waitUntilNav2Active(self, navigator='', localizer=''):
         """Block until the full navigation system is up and running."""
+        navigator = f'/{self.robot_namespace}/bt_navigator'
+        localizer = f'/{self.robot_namespace}/amcl'
         self._waitForNodeToActivate(localizer)
         if localizer == f'/{self.robot_namespace}/amcl':
             self._waitForInitialPose()
