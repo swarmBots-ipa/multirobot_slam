@@ -10,7 +10,7 @@ from ament_index_python.packages import get_package_share_directory
 def main(args=None):
     rclpy.init()
 
-    namespace = 'barista_0'
+    namespace = 'agent_1'
     navigator = RobotNavigator(namespace)
     navigator.waitUntilNav2Active()
 
