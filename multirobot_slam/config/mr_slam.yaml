@@ -10,10 +10,10 @@ slam_toolbox:
     ceres_loss_function: None
 
     # ROS Parameters
-    odom_frame: odom
-    map_frame: map
-    base_frame: base_link
-    scan_topic: scan
+    odom_frame: agent_1/odom
+    map_frame: agent_1/map
+    base_frame: agent_1/base_link
+    scan_topic: /agent_1/scan
     mode: mapping
 
     debug_logging: false
